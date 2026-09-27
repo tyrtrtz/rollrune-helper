@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RollRune 敕令等级汇总
 // @namespace    local.rollrune.edict-summary
-// @version      0.4.3
+// @version      0.4.4
 // @description  敕令与掉落等级汇总；反引号键 固定当前装备属性，勾选词条计算乘算收益。
 // @match        https://rollrune.top/*
 // @match        https://direct.rollrune.top/*
@@ -267,10 +267,20 @@
     const number = n => Math.abs(n) >= 1e9 ? n.toExponential(4) : new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 4 }).format(n);
     const signed = n => `${n >= 0 ? '+' : ''}${number(n)}`;
     function factor(text) {
+      const skill = text.trim().match(/^\+\s*(\d+)\s*技能等级(?:\s*[（(]|\s*$)/);
+      if (skill) {
+        const levels = Number(skill[1]);
+        const value = 1.3 ** levels;
+        return Number.isFinite(value) ? { value, note: '技能等级：1.3^' + levels } : null;
+      }
       const m = text.match(/(?:额外|独立)\s*(提高|增加|降低|减少)\s*([\d.]+)\s*[%％]/);
       if (!m) return null;
-      const n = 1 + (/降低|减少/.test(m[1]) ? -1 : 1) * Number(m[2]) / 100;
-      return Number.isFinite(n) && n >= 0 ? Number(n.toFixed(10)) : null;
+      const gold = /金币/.test(text) && /额外\s*(?:提高|增加)/.test(text);
+      const percent = Number(m[2]);
+      const n = 1 + (/降低|减少/.test(m[1]) ? -1 : 1) * percent * (gold ? 0.3 : 1) / 100;
+      return Number.isFinite(n) && n >= 0
+        ? { value: Number(n.toFixed(10)), note: gold ? '金币折算：' + percent + '% → ' + number(percent * 0.3) + '% more（估算）' : '' }
+        : null;
     }
     function close() {
       clones.forEach(e => e.remove()); clones = []; groups = [];
@@ -282,7 +292,7 @@
       const values = groups.map(g => {
         const selected = g.rows.filter(r => r.checkbox.checked);
         g.output.replaceChildren();
-        if (!selected.length) { g.output.textContent = g.rows.length ? '勾选词条，查看乘算合计' : '没有可换算的额外百分比词条'; return null; }
+        if (!selected.length) { g.output.textContent = g.rows.length ? '勾选词条，查看乘算合计' : '没有可换算的百分比或技能等级词条'; return null; }
         const total = selected.reduce((n, r) => n * r.factor, 1);
         if (!Number.isFinite(total)) { g.output.textContent = '所选倍率超出可计算范围'; return null; }
         const strong = document.createElement('strong');
@@ -335,18 +345,25 @@
           const sourceRows = [...originals[index].querySelectorAll('li.text-blue-400')];
           const rows = [];
           [...section.querySelectorAll('li.text-blue-400')].forEach((li, rowIndex) => {
-            const value = factor(sourceRows[rowIndex]?.innerText || '');
-            if (value === null || !visible(sourceRows[rowIndex])) return;
+            const parsed = factor(sourceRows[rowIndex]?.innerText || '');
+            if (parsed === null || !visible(sourceRows[rowIndex])) return;
+            const value = parsed.value;
             const label = document.createElement('label'); label.className = 'rr-calc-pick';
             const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.className = 'rr-calc-check';
             checkbox.setAttribute('aria-label', li.textContent.trim());
-            label.title = `按 ×${number(value)} 参与乘算`;
+            label.title = `${parsed.note ? parsed.note + "；" : ""}按 ×${number(value)} 参与乘算`;
             label.append(checkbox, ...li.childNodes); li.append(label);
+            if (parsed.note) {
+              const note = document.createElement('small');
+              note.style.cssText = 'display:block;font-size:11px;color:#c4b593';
+              note.textContent = parsed.note + ' · ×' + number(value);
+              label.append(note);
+            }
             checkbox.addEventListener('change', update); rows.push({ checkbox, factor: value });
           });
           const output = document.createElement('div'); output.className = 'rr-calc-total';
           output.setAttribute('aria-live', 'polite'); section.append(output);
-          if (!rows.length) output.textContent = '没有可换算的额外百分比词条';
+          if (!rows.length) output.textContent = '没有可换算的百分比或技能等级词条';
           groups.push({ rows, output });
         });
         for (const event of ['pointerdown','pointerup','click','dblclick','contextmenu','wheel','keydown','keyup']) {
