@@ -25,6 +25,18 @@
     [data-rr-price-notice]{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:2147483647;max-width:90vw;padding:12px 18px;border:1px solid #806438;border-radius:6px;background:#211e19;color:#f5d68a;font:14px/1.5 system-ui}
   `;
   document.head.append(style);
+  // The game handles outside clicks before events reach the portalled item panel.
+  // Keep native control defaults (focus, checkbox toggles, select and submit),
+  // but do not let these interactions reach the game's dismissal handlers.
+  for (const type of ['pointerdown','pointerup','mousedown','mouseup','click','dblclick','touchstart','touchend']) {
+    window.addEventListener(type, event => {
+      const target = event.target instanceof Element ? event.target : null;
+      const form = target?.closest('[data-rr-price-form]');
+      if (!form) return;
+      event.stopImmediatePropagation();
+      if (type === 'click' && target.closest('[data-rr-price-close]')) form.remove();
+    }, { capture: true });
+  }
   const visible = e => e?.isConnected && e.getClientRects().length && !e.closest('[aria-hidden="true"]') && getComputedStyle(e).visibility !== 'hidden';
   const buttons = (root = document) => [...root.querySelectorAll('button')].filter(visible);
   const exact = (text, root = document) => buttons(root).find(b => b.textContent.trim() === text);
@@ -53,7 +65,9 @@
       const text = li.textContent.trim();
       const template = templates.find(t=>normalized(t)===normalized(text));
       if (template && rows.some(r=>r.template===template)) continue;
-      rows.push({text, template});
+      // Matched templates contain one numeric affix value; roll ranges follow it.
+      const value = template ? text.match(/[+-]?\d+(?:\.\d+)?/)?.[0] : null;
+      rows.push({text, template, value: value == null ? '' : String(Number(value))});
     }
     return { name, rarity, category, rows };
   }
@@ -70,16 +84,16 @@
     form.append(field('p',{className:'rr-price-note',textContent:'中文名称搜索仅适用于暗金。其他装备可取消名称，按属性查价。'}));
     function select(label,options,value) {const row=field('label');const input=field('select');input.setAttribute('aria-label',label);options.forEach(t=>input.append(field('option',{value:t,textContent:t})));input.value=value;row.append(field('span',{textContent:label}),input);form.append(row);return input;}
     const rarity=select('稀有度',rarities,item.rarity), category=select('部位',categories,item.category);
-    form.append(field('p',{className:'rr-price-note',textContent:'勾选属性（最多 5 条）；最低值留空只筛选属性。按价格从低到高显示。'}));
+    form.append(field('p',{className:'rr-price-note',textContent:'勾选属性（最多 5 条），默认带入当前实际值作为最低值，可修改或清空。按价格从低到高显示。'}));
     const picks=item.rows.map(row=>{
-      const label=field('label',{className:'rr-price-row'}),check=field('input',{type:'checkbox',disabled:!row.template}),min=field('input',{type:'number',placeholder:'最低值',step:'any',disabled:true});
+      const label=field('label',{className:'rr-price-row'}),check=field('input',{type:'checkbox',disabled:!row.template}),min=field('input',{type:'number',placeholder:'最低值',step:'any',value:row.value,disabled:true});
       min.setAttribute('aria-label',row.text+' 最低值');
       const text=field('span',{textContent:row.text+(row.template?'':'（拍卖行不支持）')});label.append(check,text);if(row.template)label.append(min);form.append(label);
       check.addEventListener('change',()=>{min.disabled=!check.checked;});return {...row,check,min};
     });
     if (!item.rows.length) form.append(field('p',{className:'rr-price-note',textContent:'当前说明中没有可选词条，可按名称、稀有度和部位搜索。'}));
     const status=field('div');status.setAttribute('role','status');form.append(status);
-    const go=field('button',{type:'submit',textContent:'去拍卖行搜索'}),close=field('button',{type:'button',textContent:'收起'});close.onclick=()=>form.remove();form.append(go,close);
+    const go=field('button',{type:'submit',textContent:'去拍卖行搜索'}),close=field('button',{type:'button',textContent:'收起'});close.dataset.rrPriceClose='';form.append(go,close);
     for(const event of ['pointerdown','pointerup','click','keydown','keyup'])form.addEventListener(event,e=>e.stopPropagation());
     form.addEventListener('submit',async e=>{
       e.preventDefault();e.stopPropagation();const selected=picks.filter(r=>r.check.checked);
@@ -108,7 +122,18 @@
     let root=document.querySelector('#item_name').parentElement;
     while(root && !(root.querySelectorAll('[aria-haspopup=listbox]').length>=8 && exact('重置',root)))root=root.parentElement;
     if(!root||root===document.body)throw new Error('无法确定拍卖行筛选区域');
-    exact('重置',root).click();await pause(100);
+    exact('重置',root).click();
+    await wait(()=>[...root.querySelectorAll('input[id]')].filter(e=>!e.id.startsWith('stat_value_')).every(e=>e.value===''),'基础筛选未清空，请重试');
+    // Native Reset leaves affix rows intact. Remove them through their own controls.
+    for (let remaining = 5; root.querySelector('input[id^="stat_value_"]') && remaining > 0; remaining--) {
+      const count = root.querySelectorAll('input[id^="stat_value_"]').length;
+      const remove = exact('❌', root);
+      if (!remove) throw new Error('无法删除旧属性筛选，已停止搜索');
+      remove.click();
+      await wait(()=>root.querySelectorAll('input[id^="stat_value_"]').length < count,'旧属性筛选未删除，请重试');
+    }
+    if (root.querySelector('input[id^="stat_value_"]')) throw new Error('旧属性条件未清空，已停止搜索');
+    await pause(100);
     setInput(root.querySelector('#item_name'),query.name);
     await pause(300);
     const dropdown=label=>[...root.querySelectorAll('[aria-haspopup=listbox]')].find(b=>[...b.parentElement.parentElement.children].some(e=>e.tagName==='SPAN'&&e.textContent.trim()===label));
@@ -119,6 +144,10 @@
       const row=query.rows[i];
       await choose([...root.querySelectorAll('[aria-haspopup=listbox]')].find(b=>b.textContent.includes('+ 添加属性筛选')),row.template);
       const input=await wait(()=>root.querySelectorAll('input[id^="stat_value_"]')[i],'属性数值输入框未加载');setInput(input,row.min);
+    }
+    const applied = [...root.querySelectorAll('input[id^="stat_value_"]')];
+    if (applied.length !== query.rows.length || applied.some((input,i)=>input.value !== query.rows[i].min)) {
+      throw new Error('属性条件与本次选择不一致，已停止搜索');
     }
     // The native purchase tab runs the search; never click the purchase-item action.
     (await wait(()=>exact('购买'),'找不到拍卖行结果页')).click();
