@@ -1,8 +1,13 @@
 # RollRune 助手（RollRune Helper）
 
-用于 RollRune 的油猴辅助脚本，提供敕令等级汇总、实际掉落等级显示和装备词条乘算收益计算。
+两个独立的 RollRune 油猴脚本，可按需安装、单独启用或停用：
 
-当前版本：**0.5.3**。适用于 [RollRune](https://rollrune.top/) 及其 `direct.rollrune.top` 游戏页面。
+| 脚本 | 功能 |
+| --- | --- |
+| [游戏助手](./rollrune-helper.user.js) | 敕令等级、掉落等级、装备词条计算；不包含 Wiki 数据 |
+| [Wiki 增强搜索](./rollrune-wiki.user.js) | 仅在 Wiki 页面运行，提供栏目内搜索、三栏详情和强化说明 |
+
+当前版本：**0.6.0**。适用于 [RollRune](https://rollrune.top/) 及其 `direct.rollrune.top` 游戏页面。
 
 ## 功能
 
@@ -72,13 +77,13 @@
 ## 安装
 
 1. 在浏览器安装 [Tampermonkey](https://www.tampermonkey.net/)。
-2. 打开本仓库的 [rollrune-helper.user.js](./rollrune-helper.user.js)，复制完整代码。
+2. 按上表选择需要的 `.user.js` 文件，复制完整代码。需要两种功能时，分别新建两个脚本安装。
 3. 在 Tampermonkey 中选择“添加新脚本”，替换默认内容并按 **Ctrl+S** 保存。
 4. 确认脚本已启用，刷新游戏页面。
 
 如果浏览器提示需要允许用户脚本或开启扩展相关权限，按 Tampermonkey 的提示完成设置。
 
-已安装旧版“RollRune 敕令等级汇总”的用户，可直接替换旧脚本内容。当前保留原脚本名称和 namespace，方便覆盖更新。
+从 0.5.x 合并版升级：先用 `rollrune-helper.user.js` 替换原来的“RollRune 敕令等级汇总”，再新建脚本安装 `rollrune-wiki.user.js`。不要保留旧合并版同时启用，否则 Wiki 增强可能重复运行。游戏助手保留原名称和 namespace，Wiki 使用独立名称和 namespace。
 
 ## 更新与关闭
 
@@ -92,10 +97,11 @@
 
 ## 文件
 
-- `rollrune-helper.user.js`：完整油猴脚本。
+- `rollrune-helper.user.js`：独立游戏助手（不含 Wiki 数据）。
+- `rollrune-wiki.user.js`：独立 Wiki 增强搜索。
 - `README.md`：功能、安装和使用说明。
 
-## Wiki 增强搜索（0.5.3）
+## Wiki 增强搜索（0.6.0）
 
 进入在线 Wiki 的暗金、技能或被动列表，会在原页面内容区显示增强图鉴；其他 Wiki 页面可点击顶部的 **增强搜索**。保留原生导航和侧栏，沿用 Wiki 原生布局与深色金色配色，每行一个完整条目，卡片内部左侧为图标、名称与掉落信息，中间为彩色属性，右侧为带框的强化／升华／技能升级和机制说明；窄屏自动堆叠，不再弹出窗口。提供 102 件暗金、33 个技能与 163 个被动的详情搜索，严格限定当前栏目：暗金页只搜暗金，技能页只搜技能，被动页只搜被动：
 
@@ -108,5 +114,5 @@
 
 **资料来源是已有离线版快照，不是实时抓取：暗金 2026-09-22，被动 2026-09-23，数据版本 0.3.00；技能使用此前采集的 33 条参考资料，采集日期未记录。** 详情与搜索范围不包含后续游戏更新；请通过原 Wiki 核对新版本数值。原 Wiki 的全站搜索保留，用于查其他资料和机制。
 
-开发文件：`data/wiki-catalog.json` 保存不含图片的快照，`src/wiki-search.js` 为增强搜索源码。修改后运行 `node build-wiki.cjs`，生成完整的 `rollrune-helper.user.js`。测试使用 Playwright：运行 `npm install`、`npx playwright install chromium`，然后 `npm test`。可通过 `CHROME_PATH` 指定本机 Chrome。
+开发文件：`data/wiki-catalog.json` 保存不含图片的快照，`src/wiki-search.js` 为增强搜索源码。游戏源码为 `src/game-helper.js`。运行 `node build.cjs` 生成两个独立安装包；仅修改 Wiki 时可运行 `node build-wiki.cjs`，只生成 `rollrune-wiki.user.js`，不改动游戏助手。测试使用 Playwright：运行 `npm install`、`npx playwright install chromium`，然后 `npm test`。可通过 `CHROME_PATH` 指定本机 Chrome。
 
