@@ -1,13 +1,14 @@
 {
   "name": "rollrune-helper",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "private": true,
   "scripts": {
     "build": "node build.cjs",
-    "test": "node tests/calculator.cjs && node tests/wiki-search.cjs && node tests/edict.cjs",
+    "test": "node tests/calculator.cjs && node tests/wiki-search.cjs && node tests/edict.cjs && node tests/price-check.cjs",
     "build:wiki": "node build-wiki.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"
-  }
+  },
+  "wikiVersion": "0.6.0"
 }
