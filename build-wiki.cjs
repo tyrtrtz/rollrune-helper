@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const catalog = JSON.parse(fs.readFileSync('data/wiki-catalog.json', 'utf8').replace(/^\uFEFF/, ''));
-const wiki = fs.readFileSync('src/wiki-search.js', 'utf8').replace(/^\uFEFF/, '').replace('/*__WIKI_CATALOG__*/ []', JSON.stringify(catalog));
+const wiki = fs.readFileSync('src/wiki-search.js', 'utf8').replace(/^\uFEFF/, '').replace('/*__WIKI_CATALOG__*/ []', JSON.stringify(catalog.filter(item => item.kind !== '技能')));
 const header = `// ==UserScript==
 // @name         RollRune Wiki 增强搜索
 // @namespace    local.rollrune.wiki-search

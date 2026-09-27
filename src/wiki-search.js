@@ -11,7 +11,14 @@
   let panel, launcher, previousFocus, queryTimer, host, lastPath;
   const pageSize = 24;
   let page = 1;
-  const sectionKinds = { uniques: '暗金', skills: '技能', passives: '被动' };
+  const sectionKinds = { uniques: '暗金', passives: '被动' };
+  const viewKey = 'rollrune-wiki-view';
+  let viewMode = 'enhanced';
+  try { if (localStorage.getItem(viewKey) === 'original') viewMode = 'original'; } catch {}
+  function rememberView(mode) {
+    viewMode = mode;
+    try { localStorage.setItem(viewKey, mode); } catch {}
+  }
   const currentKind = () => sectionKinds[location.pathname.split('/')[2]] || '';
   const make = (tag, text, cls) => { const e = document.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; return e; };
   const style = make('style');
@@ -74,14 +81,14 @@
     @media(max-width:700px){#rr-wiki-search .rrw-card{grid-template-columns:minmax(0,1fr);padding:18px}#rr-wiki-search .rrw-left{grid-row:auto;border-right:0;border-bottom:1px solid #364038;padding:0 0 15px}#rr-wiki-search .rrw-right{grid-column:1}}
   `;
   document.head.append(style);
-  function close() { if (!panel || panel.hidden) return; panel.hidden = true; host?.removeAttribute('data-rr-wiki-active'); if (previousFocus?.isConnected) previousFocus.focus(); }
+  function close(remember = false) { if (remember) rememberView('original'); if (!panel || panel.hidden) return; panel.hidden = true; host?.removeAttribute('data-rr-wiki-active'); if (previousFocus?.isConnected) previousFocus.focus(); }
   function build() {
     panel = make('section'); panel.className = host.querySelector(':scope > div')?.className || 'mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-9'; panel.id = 'rr-wiki-search'; panel.hidden = true;
     panel.setAttribute('role', 'region'); panel.setAttribute('aria-label', '暗金与被动增强搜索');
     const top = make('div', '', 'rrw-top'), title = make('div', '', 'rrw-title');
     const heading=make('h1',currentKind()+'百科 · 增强搜索','mt-2 font-display text-3xl font-bold tracking-tight text-[#f3dfae] md:text-4xl');title.append(heading);
-    const exit = make('button', '原版视图'); exit.type = 'button'; exit.onclick = close; title.append(exit);
-    top.append(title, make('p', '当前栏目内搜索 · 资料为参考快照，最新数值请核对原 Wiki。暗金：2026-09-22；被动：2026-09-23；技能：此前收集的资料（日期未记录）。', 'rrw-note'));
+    const exit = make('button', '原版视图'); exit.type = 'button'; exit.onclick = () => close(true); title.append(exit);
+    top.append(title, make('p', '当前栏目内搜索 · 资料为参考快照，最新数值请核对原 Wiki。暗金：2026-09-22；被动：2026-09-23。', 'rrw-note'));
     const controls = make('div', '', 'rrw-controls'), fields = {};
     function select(id, caption, options) {
       const label = make('label', caption), input = make('select'); input.dataset.field = id;
@@ -91,7 +98,7 @@
     const qLabel = make('label', '多个关键词用空格分隔，例如：毒素 伤害', 'rrw-query-label');
     const query = make('input'); query.type = 'search'; query.placeholder = '搜索名称、词条、触发效果、升华…'; query.dataset.field = 'query'; fields.query = query; qLabel.append(query); controls.append(qLabel);
     select('mode', '匹配方式', [['all','全部关键词'],['any','任一关键词']]);
-    select('kind', '资料类型', [['暗金','暗金'],['技能','技能'],['被动','被动']]);
+    select('kind', '资料类型', [['暗金','暗金'],['被动','被动']]);
     fields.kind.parentElement.hidden=true;fields.kind.value=currentKind();
     const category = select('category', '分类', [['','全部分类']]);
     select('scope', '搜索范围', [['all','全部详情'],['effects','属性与强化 / 升华'],['name','仅名称'],['overview','用途说明'],['drop','掉落与基础信息']]);
@@ -163,7 +170,7 @@
     for(const field of Object.values(fields)) field.addEventListener(field===query?'input':'change',()=>{page=1;if(field===fields.kind) categories();clearTimeout(queryTimer);queryTimer=setTimeout(render,field===query?120:0);});
     reset.onclick=()=>{query.value='';for(const f of Object.values(fields)) if(f.tagName==='SELECT') f.selectedIndex=0;fields.kind.value=currentKind();categories();page=1;render();query.focus();};
     prev.onclick=()=>{page--;render();};next.onclick=()=>{page++;render();};
-    panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close();}});
+    panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close(true);}});
     categories(); render(); panel.openSearch=(kind=currentKind())=>{previousFocus=document.activeElement;heading.textContent=kind+'百科 · 增强搜索';query.value='';fields.nodeKind.value='';fields.level.value='';if(kind!==undefined){fields.kind.value=kind;category.value='';categories();page=1;render();}panel.hidden=false;host.setAttribute('data-rr-wiki-active','');host.scrollTop=0;query.focus({preventScroll:true});};
   }
 
@@ -174,9 +181,9 @@
     if(!header||!nextHost) return;
     if(!currentKind()){close();launcher?.remove();lastPath=null;return;}
     if(host!==nextHost){close();panel?.remove();panel=null;host=nextHost;lastPath=null;}
-    if(!launcher?.isConnected){launcher=make('button','增强搜索');launcher.id='rr-wiki-launch';launcher.type='button';launcher.onclick=()=>{if(!panel?.isConnected) build();panel.openSearch();};header.append(launcher);}
-    if(lastPath!==location.pathname){close();lastPath=location.pathname;if(/^\/wiki\/(uniques|skills|passives)\/?$/.test(lastPath)){if(!panel?.isConnected) build();panel.openSearch(currentKind());}}
+    if(!launcher?.isConnected){launcher=make('button','增强搜索');launcher.id='rr-wiki-launch';launcher.type='button';launcher.onclick=()=>{rememberView('enhanced');if(!panel?.isConnected) build();panel.openSearch();};header.append(launcher);}
+    if(lastPath!==location.pathname){close();lastPath=location.pathname;if(viewMode==='enhanced' && /^\/wiki\/(uniques|passives)\/?$/.test(lastPath)){if(!panel?.isConnected) build();panel.openSearch(currentKind());}}
   }
-  document.addEventListener('input',e=>{if(e.target.matches('main > header input')) close();});
+  document.addEventListener('input',e=>{if(e.target.matches('main > header input')) close(true);});
   mount(); setInterval(mount,500);
 })();

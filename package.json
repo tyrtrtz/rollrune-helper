@@ -10,5 +10,5 @@
   "devDependencies": {
     "playwright": "1.62.1"
   },
-  "wikiVersion": "0.6.0"
+  "wikiVersion": "0.6.1"
 }
