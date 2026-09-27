@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RollRune 敕令等级汇总
 // @namespace    local.rollrune.edict-summary
-// @version      0.6.0
+// @version      0.6.1
 // @description  游戏内敕令等级汇总、掉落等级显示与装备词条收益计算。
 // @match        https://rollrune.top/*
 // @match        https://direct.rollrune.top/*
@@ -89,16 +89,22 @@
       document.documentElement.setAttribute('data-rr-reading-edict', '');
       state.icon.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
       entered = true;
-      // The game's reactive renderer creates its tooltip on a later task.
-      await new Promise(resolve => setTimeout(resolve, 60));
-      if (battle !== state || !state.icon.isConnected) return;
-      const tooltips = [...document.querySelectorAll('.rr-game-tooltip .rr-layered-tooltip')]
-        .filter(e => visible(e) && [...e.querySelectorAll('li')].some(li => li.textContent.trim() === '敕令'));
-      if (tooltips.length === 1) {
+      // Wait for the item itself, including its footer, rather than a fixed render delay.
+      // A slow/partial tooltip must not be cached as an edict with zero bonus.
+      const deadline = Date.now() + 2000;
+      while (Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        if (battle !== state || !state.icon.isConnected || document.hidden) return;
+        const tooltips = [...document.querySelectorAll('.rr-game-tooltip .rr-layered-tooltip')]
+          .filter(e => visible(e) && [...e.querySelectorAll('li')].some(li => li.textContent.trim() === '敕令'));
+        if (tooltips.length !== 1) continue;
         const text = tooltips[0].innerText;
+        if (!/需求战力等级\s*[:：]\s*\d+/.test(text) || !/物品战力等级\s*[:：]\s*\d+/.test(text)) continue;
         state.edict = bonuses(text).reduce((sum, n) => sum + n, 0);
         state.edictName = tooltips[0].querySelector('li')?.textContent.trim() || '当前敕令';
         state.lastRead = Date.now();
+        state.readFloor = state.level;
+        return;
       }
     } finally {
       if (entered) state.icon.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
@@ -123,6 +129,13 @@
       bar.setAttribute(BAR, '');
       bar.style.cssText = 'position:relative;z-index:10;flex:0 0 auto;box-sizing:border-box;padding:5px 8px;background:linear-gradient(90deg,#201b16,#302619,#201b16);border-bottom:1px solid #6b5430;color:#d2c6ad;text-align:center;font-size:12px;line-height:1.6;white-space:normal;';
       battle = { ...parts, bar, edict: parts.icon ? null : 0, edictName: '', lastRead: 0, lastAttempt: 0 };
+      bar.style.cursor = 'pointer';
+      bar.addEventListener('click', () => {
+        if (battle?.bar !== bar) return;
+        battle.lastAttempt = 0;
+        battle.lastRead = 0;
+        schedule();
+      });
       parts.header.after(bar);
     }
     const state = battle;
@@ -146,11 +159,10 @@
         state.bar.append(label, result);
       } else { state.bar.textContent = text; }
     }
-    state.bar.title = `地区：${parts.name}\n敕令：${state.edictName || (parts.icon ? '读取当前生效敕令' : '未使用')}\n按当前层数 + 敕令等级加成 + 地区掉落等级加成汇总。`;
+    state.bar.title = `地区：${parts.name}\n敕令：${state.edictName || (parts.icon ? '读取当前生效敕令' : '未使用')}\n按当前层数 + 敕令等级加成 + 地区掉落等级加成汇总。点击重试读取。`;
     // Refresh on each floor change and periodically for a newly started run.
     if (!region?.training && parts.icon && !probing && Date.now() - state.lastAttempt > 2000 &&
         (edict === null || state.readFloor !== parts.level || Date.now() - state.lastRead > 15000)) {
-      state.readFloor = parts.level;
       void readCurrentEdict(state);
     }
   }
