@@ -43,6 +43,35 @@
     #rr-wiki-search .rrw-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 0;font-size:12px;color:#a8a29e}
     #rr-wiki-search .rrw-foot button{margin-left:6px;padding:6px 12px}
     @media(max-width:650px){#rr-wiki-search .rrw-card{padding:16px}#rr-wiki-search .rrw-title{align-items:start}#rr-wiki-search .rrw-controls{gap:10px}#rr-wiki-search select{max-width:155px}}
+
+    #rr-wiki-search{max-width:1800px;width:100%}
+    #rr-wiki-search .rrw-card{display:grid;grid-template-columns:220px minmax(0,1.15fr) minmax(0,1fr);gap:30px;padding:28px;background:#171d1b;border-color:#303b36;border-radius:12px;align-items:start}
+    #rr-wiki-search .rrw-left{padding-right:24px;border-right:1px solid #364038;align-self:stretch}
+    #rr-wiki-search .rrw-identity{border:0;padding:0;margin-bottom:18px;align-items:center;gap:14px}
+    #rr-wiki-search .rrw-identity>div:first-child:has(img){flex-shrink:0}
+    #rr-wiki-search h3{color:#e7b66b;font-size:20px}
+    #rr-wiki-search .rrw-meta{color:#adb5ac}
+    #rr-wiki-search .rrw-badges{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}
+    #rr-wiki-search .rrw-badge{font-size:11px;background:#242c23;border:1px solid #414b38;border-radius:4px;padding:2px 7px;color:#c4cbb7}
+    #rr-wiki-search .rrw-drop{font-size:13px;line-height:1.9;color:#c8cfc6;margin:10px 0 20px}
+    #rr-wiki-search .rrw-drop-title{font-size:12px;color:#929d8b;margin-bottom:8px}
+    #rr-wiki-search .rrw-attrs h4{color:#97bec5;font-size:12px;font-weight:400}
+    #rr-wiki-search .rrw-line{font-size:14px;line-height:1.9;color:#a9d1ff;overflow-wrap:anywhere;margin:3px 0}
+    #rr-wiki-search .rrw-line.rrw-affix-heading{color:#8ca3ba;font-size:12px;margin-top:20px}
+    #rr-wiki-search .rrw-line.rrw-more{color:#c4b5fd}
+    #rr-wiki-search .rrw-line.rrw-small{color:#a6c1ce;font-size:12px}
+    #rr-wiki-search .rrw-line.rrw-flavor{color:#afa98c;font-size:13px;font-style:italic;margin-top:16px}
+    #rr-wiki-search .rrw-upgrade{background:#20291f;border:1px solid #3e4b33;border-radius:7px;padding:16px 18px;color:#d8ddb2}
+    #rr-wiki-search .rrw-upgrade h4{color:#d8ddb2;font-size:13px;font-weight:400}
+    #rr-wiki-search .rrw-upgrade .rrw-line{color:#d8ddb2;font-size:13px}
+    #rr-wiki-search .rrw-upgrade .rrw-bonus{position:relative;padding-left:21px}
+    #rr-wiki-search .rrw-upgrade .rrw-bonus:before{content:'↗';position:absolute;left:0;color:#93b85c}
+    #rr-wiki-search .rrw-explanation{margin-top:18px;padding-top:12px;border-top:1px solid #394436}
+    #rr-wiki-search .rrw-explanation summary{color:#d8ddb2}
+    #rr-wiki-search .rrw-explanation pre{color:#b6d4df;font-size:13px;line-height:2;margin-top:14px}
+    #rr-wiki-search mark{background:#c6a44c;color:#171a15;border-radius:2px}
+    @media(max-width:1250px){#rr-wiki-search .rrw-card{grid-template-columns:170px minmax(0,1fr);gap:22px}#rr-wiki-search .rrw-right{grid-column:2}#rr-wiki-search .rrw-left{grid-row:1/3}}
+    @media(max-width:700px){#rr-wiki-search .rrw-card{grid-template-columns:minmax(0,1fr);padding:18px}#rr-wiki-search .rrw-left{grid-row:auto;border-right:0;border-bottom:1px solid #364038;padding:0 0 15px}#rr-wiki-search .rrw-right{grid-column:1}}
   `;
   document.head.append(style);
   function close() { if (!panel || panel.hidden) return; panel.hidden = true; host?.removeAttribute('data-rr-wiki-active'); if (previousFocus?.isConnected) previousFocus.focus(); }
@@ -103,14 +132,31 @@
       results.replaceChildren();
       if(!list.length) results.append(make('p','没有匹配结果，试试减少关键词或重置筛选。'));
       for(const item of list.slice((page-1)*pageSize,page*pageSize)) {
-        const card=make('article','','rrw-card'), heading=make('h3'); highlight(heading,item.name,tokens);
-        const link=make('a','查看原 Wiki ↗'); link.href=item.path; link.target='_blank'; link.rel='noopener noreferrer';
-        const meta=make('div',`${item.kind} · ${item.category}\n${item.level!==null?'最低掉落等级 '+item.level+'\n':''}快照 ${item.date}\n`,'rrw-meta'); meta.append(link);
-        const identity=make('div','','rrw-identity');const text=make('div');text.append(heading,meta);const native=[...host.querySelectorAll(':scope > div a[href]')].find(a=>new URL(a.href,location.href).pathname===item.path);const icon=native?.querySelector('img')?.parentElement;if(icon)identity.append(icon.cloneNode(true));identity.append(text);card.append(identity);
-        const cols=make('div','','rrw-columns');
-        for(const [caption,text] of [['详情',item.effects.split('\n').filter(line=>!line.trim().startsWith('用途：')).join('\n')],[item.kind==='技能'?'技能精通与升级':item.kind==='被动'?'升华':'强化',item.upgrade||'无相关说明']]) {const col=make('div'), pre=make('pre'); highlight(pre,text,tokens); col.append(make('h4',caption),pre); cols.append(col);}
-        card.append(cols);
-        const details=make('details'); details.append(make('summary','用途、掉落与基础信息')); const pre=make('pre'); highlight(pre,[item.overview,item.meta,item.drop].filter(Boolean).join('\n\n'),tokens); details.append(pre); card.append(details); results.append(card);
+        const card=make('article','','rrw-card'), left=make('div','','rrw-left'), middle=make('div','','rrw-attrs'), right=make('div','','rrw-right');
+        const heading=make('h3');highlight(heading,item.name,tokens);
+        const identity=make('div','','rrw-identity'), caption=make('div');caption.append(heading,make('div',item.category,'rrw-meta'));
+        const native=[...host.querySelectorAll(':scope > div a[href]')].find(a=>new URL(a.href,location.href).pathname===item.path);
+        const icon=native?.querySelector('img')?.parentElement;if(icon)identity.append(icon.cloneNode(true));identity.append(caption);left.append(identity);
+        const badges=make('div','','rrw-badges');if(item.level!==null)badges.append(make('span','最低掉落 Lv. '+item.level,'rrw-badge'));badges.append(make('span',item.kind,'rrw-badge'));left.append(badges);
+        if(item.drop){const drop=make('div','','rrw-drop');drop.append(make('div','掉落来源','rrw-drop-title'));const value=make('div');highlight(value,item.drop,tokens);drop.append(value);left.append(drop);}
+        const link=make('a','原 Wiki 详情 ↗');link.href=item.path;link.target='_blank';link.rel='noopener noreferrer';left.append(link,make('div','资料快照：'+item.date,'rrw-meta'));
+        middle.append(make('h4','属性明细'));
+        let afterLevel=false;
+        for(const raw of item.effects.split('\n')) {
+          const line=raw.trim();if(!line||line===item.name||line.startsWith('用途：'))continue;
+          let cls='rrw-line';
+          if(/^(基础词缀|前缀|后缀)/.test(line))cls+=' rrw-affix-heading';
+          else if(/^(需求战力等级|物品战力等级|暗金|魔法|稀有)/.test(line))cls+=' rrw-small';
+          else if(afterLevel)cls+=' rrw-flavor';
+          else if(/额外|独立/.test(line))cls+=' rrw-more';
+          const row=make('div','',cls);highlight(row,line,tokens);middle.append(row);
+          if(/^物品战力等级/.test(line))afterLevel=true;
+        }
+        const upgrade=make('div','','rrw-upgrade');upgrade.append(make('h4',item.kind==='暗金'?'每次暗金强化':item.kind==='被动'?'升华效果':'技能精通与升级'));
+        for(const raw of (item.upgrade||'无相关说明').split('\n')){const line=raw.trim();if(!line||line==='暗金强化'||line==='每次强化获得')continue;const isBonus=/[%％+]|提高|增加|降低|恢复/.test(line)&&!/^可强化/.test(line);const row=make('div','','rrw-line'+(isBonus?' rrw-bonus':''));highlight(row,line,tokens);upgrade.append(row);}right.append(upgrade);
+        const details=make('details','','rrw-explanation');details.open=true;details.append(make('summary','用途与机制说明'));const pre=make('pre');highlight(pre,item.overview||item.meta||'暂无额外说明',tokens);details.append(pre);right.append(details);
+        card.append(left,middle,right);results.append(card);
+
       }
       count.textContent=`${list.length} / ${catalog.filter(i=>i.kind===currentKind()).length} 条 · 第 ${page} / ${pages} 页`; prev.disabled=page<=1; next.disabled=page>=pages; results.scrollTop=0;
     }
