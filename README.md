@@ -6,7 +6,7 @@
 
 | 安装入口 | 包含功能 |
 | --- | --- |
-| **[👉 安装游戏助手 · Greasy Fork](https://greasyfork.org/zh-CN/scripts/597682)** | 敕令等级汇总、战斗掉落等级、装备词条收益计算、一键查价 |
+| **[👉 安装游戏助手 · Greasy Fork](https://greasyfork.org/zh-CN/scripts/597682)** | 敕令等级汇总、战斗掉落等级、装备词条收益计算、一键查价、按角色名查资料 |
 | **[👉 安装 Wiki 增强搜索 · Greasy Fork](https://greasyfork.org/zh-CN/scripts/597684)** | Wiki 栏目内增强搜索、三栏属性详情、强化与升华说明 |
 
 1. 在浏览器中安装 **[Tampermonkey（油猴）](https://www.tampermonkey.net/)** 扩展。
@@ -24,10 +24,14 @@
 
 | 脚本 | 功能 |
 | --- | --- |
-| [游戏助手](./rollrune-helper.user.js) | 敕令等级、掉落等级、装备词条计算；不包含 Wiki 数据 |
+| [游戏助手](./rollrune-helper.user.js) | 敕令等级、掉落等级、装备词条计算、一键查价、角色资料查询；不包含 Wiki 数据 |
 | [Wiki 增强搜索](./rollrune-wiki.user.js) | 仅在 Wiki 页面运行，提供栏目内搜索、三栏详情和强化说明 |
 
-当前版本：游戏助手 **0.7.2**，Wiki 增强搜索 **0.6.1**。适用于 [RollRune](https://rollrune.top/) 及其 `direct.rollrune.top` 游戏页面。
+当前版本：游戏助手 **0.7.3**，Wiki 增强搜索 **0.6.1**。适用于 [RollRune](https://rollrune.top/) 及其 `direct.rollrune.top` 游戏页面。
+
+## 0.7.3 更新
+
+- 在右下角“挂机中”列表中增加角色资料查询，可输入角色名、UUID 或资料链接。
 
 ## 0.7.2 更新
 
@@ -40,6 +44,10 @@
 - 连续查价前逐条清除旧属性筛选，校验条件后再搜索，避免沿用上一次条件。
 
 ## 功能
+
+### 按角色名或 ID 查看资料
+
+点击右下角“挂机中”，在列表顶部输入**角色名**，点击“查看资料”。也可以输入完整角色 UUID 或粘贴游戏资料链接。这个入口使用游戏原生的公开资料页面；账号名不一定等于角色名，不存在或无权查看的角色仍由游戏页面提示。
 
 ### 装备一键查价（0.7.1）
 
