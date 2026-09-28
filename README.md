@@ -27,7 +27,11 @@
 | [游戏助手](./rollrune-helper.user.js) | 敕令等级、掉落等级、装备词条计算；不包含 Wiki 数据 |
 | [Wiki 增强搜索](./rollrune-wiki.user.js) | 仅在 Wiki 页面运行，提供栏目内搜索、三栏详情和强化说明 |
 
-当前版本：游戏助手 **0.7.1**，Wiki 增强搜索 **0.6.1**。适用于 [RollRune](https://rollrune.top/) 及其 `direct.rollrune.top` 游戏页面。
+当前版本：游戏助手 **0.7.2**，Wiki 增强搜索 **0.6.1**。适用于 [RollRune](https://rollrune.top/) 及其 `direct.rollrune.top` 游戏页面。
+
+## 0.7.2 更新
+
+- 修复战斗中使用次级敕令时，掉落等级栏可能一直显示“敕令 读取中”的问题。
 
 ## 0.7.1 更新
 

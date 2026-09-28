@@ -19,7 +19,7 @@ const assert = require('assert/strict');
         if (window.attempts === 1) return;
         const tip = document.createElement('div');
         tip.className = 'rr-game-tooltip';
-        tip.innerHTML = '<section class="rr-layered-tooltip"><ul><li>测试敕令</li><li>敕令</li></ul></section>';
+        tip.innerHTML = '<section class="rr-layered-tooltip"><ul><li>顽强指令</li><li>次级敕令</li><li>大师杰作敕令</li></ul></section>';
         document.body.append(tip);
         timer = setTimeout(() => { tip.querySelector('ul').insertAdjacentHTML('beforeend', '<li>物品战力等级 +12</li><li>物品战力等级 +16</li><li>需求战力等级：600</li><li>物品战力等级：636</li>'); }, 400);
       });

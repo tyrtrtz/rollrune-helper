@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RollRune 敕令等级汇总
 // @namespace    local.rollrune.edict-summary
-// @version      0.7.1
+// @version      0.7.2
 // @description  游戏内敕令等级汇总、掉落等级显示、装备词条收益计算与拍卖行一键查价。
 // @match        https://rollrune.top/*
 // @match        https://direct.rollrune.top/*
@@ -96,7 +96,7 @@
         await new Promise(resolve => setTimeout(resolve, 50));
         if (battle !== state || !state.icon.isConnected || document.hidden) return;
         const tooltips = [...document.querySelectorAll('.rr-game-tooltip .rr-layered-tooltip')]
-          .filter(e => visible(e) && [...e.querySelectorAll('li')].some(li => li.textContent.trim() === '敕令'));
+          .filter(e => visible(e) && [...e.querySelectorAll('li')].some(li => /^(?:普通|魔法|稀有|大师杰作|暗金)?\s*(?:次级)?敕令$/.test(li.textContent.trim())));
         if (tooltips.length !== 1) continue;
         const text = tooltips[0].innerText;
         if (!/需求战力等级\s*[:：]\s*\d+/.test(text) || !/物品战力等级\s*[:：]\s*\d+/.test(text)) continue;
