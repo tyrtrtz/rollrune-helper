@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RollRune 敕令等级汇总
 // @namespace    local.rollrune.edict-summary
-// @version      0.7.4
+// @version      0.7.5
 // @description  游戏内敕令等级汇总、掉落等级显示、装备词条计算、一键查价与排行榜实时资料入口。
 // @match        https://rollrune.top/*
 // @match        https://direct.rollrune.top/*
@@ -685,19 +685,26 @@
         .map(button => button.closest('div.grid')).filter(Boolean));
       for (const row of rows) {
         const nameLine = row.children[1]?.firstElementChild;
-        const name = nameLine?.querySelector('span[title]')?.getAttribute('title')?.trim();
-        if (!name || nameLine.querySelector('[data-rr-live-profile]')) continue;
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.setAttribute('data-rr-live-profile', '');
-        button.setAttribute('aria-label', `${name} · 查看实时信息`);
-        button.title = `查看 ${name} 的实时资料`;
-        button.textContent = '查看实时信息';
-        button.addEventListener('click', event => {
-          event.stopPropagation();
-          location.assign(`${location.origin}/view-character/${encodeURIComponent(name)}`);
-        });
-        nameLine.append(button);
+        const currentName = () => nameLine?.querySelector('span[title]')?.getAttribute('title')?.trim();
+        const name = currentName();
+        if (!name) continue;
+        let button = nameLine.querySelector('[data-rr-live-profile]');
+        if (!button) {
+          button = document.createElement('button');
+          button.type = 'button';
+          button.setAttribute('data-rr-live-profile', '');
+          button.textContent = '查看实时信息';
+          button.addEventListener('click', event => {
+            event.stopPropagation();
+            const liveName = currentName();
+            if (liveName) location.assign(`${location.origin}/view-character/${encodeURIComponent(liveName)}`);
+          });
+          nameLine.append(button);
+        }
+        const label = `${name} · 查看实时信息`;
+        const title = `查看 ${name} 的实时资料`;
+        if (button.getAttribute('aria-label') !== label) button.setAttribute('aria-label', label);
+        if (button.title !== title) button.title = title;
       }
     }
   }
@@ -707,6 +714,6 @@
     if (scheduled) return;
     scheduled = true;
     setTimeout(() => { scheduled = false; mount(); }, 50);
-  }).observe(document.body, { childList: true, subtree: true });
+  }).observe(document.body, { childList: true, characterData: true, attributes: true, attributeFilter: ['title'], subtree: true });
   mount();
 })();

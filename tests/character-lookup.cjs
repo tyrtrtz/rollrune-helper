@@ -70,6 +70,32 @@ const assert = require('node:assert/strict');
     assert.equal(await live.locator('xpath=..').locator('span[title]').getAttribute('title'), '清风夜雨');
     await live.click();
     await page.waitForURL('http://rollrune.test/view-character/%E6%B8%85%E9%A3%8E%E5%A4%9C%E9%9B%A8');
+
+    // The game reuses ranking rows when changing maps. The old button must
+    // follow the row's new character instead of its original click closure.
+    await page.goto('http://rollrune.test/town');
+    await page.evaluate(() => {
+      const dialog = document.createElement('div');
+      dialog.setAttribute('role', 'dialog');
+      dialog.setAttribute('aria-modal', 'true');
+      dialog.innerHTML = '<aside aria-label="地图列表"></aside><div class="grid" id="reused-row"><span>5</span><div><div><span title="茶叶蛋">茶叶蛋</span></div></div><button aria-label="茶叶蛋 · 查看配装与天赋 →">查看配装与天赋</button></div>';
+      document.body.append(dialog);
+    });
+    await page.addScriptTag({ content: fs.readFileSync('src/character-lookup.js', 'utf8') });
+    const reused = page.locator('#reused-row [data-rr-live-profile]');
+    await reused.waitFor();
+    await page.evaluate(() => {
+      const row = document.querySelector('#reused-row');
+      const name = row.querySelector('span[title]');
+      name.title = '星界琉璃';
+      name.textContent = '星界琉璃';
+      row.querySelector('button[aria-label$="· 查看配装与天赋 →"]').setAttribute('aria-label', '星界琉璃 · 查看配装与天赋 →');
+    });
+    await page.waitForFunction(() => document.querySelector('#reused-row [data-rr-live-profile]')?.getAttribute('aria-label') === '星界琉璃 · 查看实时信息');
+    assert.equal(await reused.count(), 1);
+    assert.equal(await reused.getAttribute('title'), '查看 星界琉璃 的实时资料');
+    await reused.click();
+    await page.waitForURL('http://rollrune.test/view-character/%E6%98%9F%E7%95%8C%E7%90%89%E7%92%83');
   } finally {
     await browser.close();
   }
