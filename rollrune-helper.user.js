@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         RollRune 敕令等级汇总
 // @namespace    local.rollrune.edict-summary
-// @version      0.7.3
-// @description  游戏内敕令等级汇总、掉落等级显示、装备词条计算、一键查价与角色资料查询。
+// @version      0.7.4
+// @description  游戏内敕令等级汇总、掉落等级显示、装备词条计算、一键查价与排行榜实时资料入口。
 // @match        https://rollrune.top/*
 // @match        https://direct.rollrune.top/*
 // @exclude      https://rollrune.top/wiki*
@@ -619,6 +619,8 @@
     [data-rr-character-form] input{flex:1;min-width:140px;padding:5px 7px;color:#f4f4f5;background:#27272a;border:1px solid #71717a;border-radius:4px;user-select:text}
     [data-rr-character-form] button{padding:5px 9px;color:#f5d68a;background:#3b2c19;border:1px solid #8b6b3b;border-radius:4px;cursor:pointer}
     [data-rr-character-error]{width:100%;color:#fca5a5;text-align:left}
+    [data-rr-live-profile]{flex:none;white-space:nowrap;color:#fcd34d;font-size:12px;font-weight:600;line-height:1.5;cursor:pointer}
+    [data-rr-live-profile]:hover{color:#fef3c7}
   `;
   document.head.append(style);
 
@@ -634,6 +636,7 @@
   }
 
   function mount() {
+    mountLeaderboard();
     const popup = findPopup();
     if (!popup || popup.querySelector('[data-rr-character-form]')) return;
     const form = document.createElement('form');
@@ -673,6 +676,30 @@
         : `${location.origin}/view-character/${encodeURIComponent(name)}`);
     });
     popup.prepend(form);
+  }
+
+  function mountLeaderboard() {
+    for (const dialog of document.querySelectorAll('[role="dialog"][aria-modal="true"]')) {
+      if (!dialog.querySelector('aside[aria-label="地图列表"]')) continue;
+      const rows = new Set([...dialog.querySelectorAll('button[aria-label$="· 查看配装与天赋 →"]')]
+        .map(button => button.closest('div.grid')).filter(Boolean));
+      for (const row of rows) {
+        const nameLine = row.children[1]?.firstElementChild;
+        const name = nameLine?.querySelector('span[title]')?.getAttribute('title')?.trim();
+        if (!name || nameLine.querySelector('[data-rr-live-profile]')) continue;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.setAttribute('data-rr-live-profile', '');
+        button.setAttribute('aria-label', `${name} · 查看实时信息`);
+        button.title = `查看 ${name} 的实时资料`;
+        button.textContent = '查看实时信息';
+        button.addEventListener('click', event => {
+          event.stopPropagation();
+          location.assign(`${location.origin}/view-character/${encodeURIComponent(name)}`);
+        });
+        nameLine.append(button);
+      }
+    }
   }
 
   let scheduled = false;

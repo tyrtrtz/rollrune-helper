@@ -51,6 +51,25 @@ const assert = require('node:assert/strict');
     await page.locator('[data-rr-character-form] input').fill('段语仙');
     await page.locator('[data-rr-character-form] button').click();
     await page.waitForURL('http://rollrune.test/view-character/%E6%AE%B5%E8%AF%AD%E4%BB%99');
+
+    await page.evaluate(() => {
+      const dialog = document.createElement('div');
+      dialog.setAttribute('role', 'dialog');
+      dialog.setAttribute('aria-modal', 'true');
+      dialog.innerHTML = '<aside aria-label="地图列表"></aside><div id="rankings"><div class="grid"><span>1</span><div><div class="flex"><span title="段语仙">段语仙</span></div></div><button aria-label="段语仙 · 查看配装与天赋 →">查看配装与天赋</button><div><button aria-label="段语仙 · 查看配装与天赋 →">查看配装与天赋</button></div></div></div>';
+      document.body.append(dialog);
+    });
+    await page.addScriptTag({ content: fs.readFileSync('src/character-lookup.js', 'utf8') });
+    assert.equal(await page.locator('[data-rr-live-profile]').count(), 1);
+    await page.evaluate(() => {
+      document.querySelector('#rankings').innerHTML = '<div class="grid"><span>2</span><div><div class="flex"><span title="清风夜雨">清风夜雨</span></div></div><button aria-label="清风夜雨 · 查看配装与天赋 →">查看配装与天赋</button></div>';
+    });
+    const live = page.locator('[data-rr-live-profile]');
+    await live.waitFor();
+    assert.equal(await live.count(), 1);
+    assert.equal(await live.locator('xpath=..').locator('span[title]').getAttribute('title'), '清风夜雨');
+    await live.click();
+    await page.waitForURL('http://rollrune.test/view-character/%E6%B8%85%E9%A3%8E%E5%A4%9C%E9%9B%A8');
   } finally {
     await browser.close();
   }

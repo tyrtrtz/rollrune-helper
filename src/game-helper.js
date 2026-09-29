@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         RollRune 敕令等级汇总
 // @namespace    local.rollrune.edict-summary
-// @version      0.7.2
-// @description  游戏内敕令等级汇总、掉落等级显示、装备词条计算、一键查价与角色资料查询。
+// @version      0.7.4
+// @description  游戏内敕令等级汇总、掉落等级显示、装备词条计算、一键查价与排行榜实时资料入口。
 // @match        https://rollrune.top/*
 // @match        https://direct.rollrune.top/*
 // @exclude      https://rollrune.top/wiki*
