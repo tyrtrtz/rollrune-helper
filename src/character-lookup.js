@@ -71,17 +71,40 @@
     popup.prepend(form);
   }
 
+  function leaderboardTarget(row) {
+    const dialog = row.closest('[role="dialog"][aria-modal="true"]');
+    const sidebar = dialog?.querySelector('aside[aria-label="地图列表"],aside[aria-label="榜单列表"]');
+    if (!sidebar) return null;
+    const board = sidebar.querySelector('button[aria-pressed="true"]')?.getAttribute('title');
+    const cell = row.children[1];
+    // 新玩家榜上方为账号名，下方才是角色名；财富榜没有角色。
+    if (board === '财富榜') return null;
+    if (board === '战力榜' || board === '黑手榜') {
+      const line = cell?.children[1];
+      const character = line?.querySelector(':scope > span');
+      if (!character || character.classList.contains('text-amber-400/90')) return null;
+      const name = character.textContent.trim();
+      return name ? { name, line } : null;
+    }
+    if (!row.querySelector('button[aria-label$="· 查看配装与天赋 →"]')) return null;
+    const line = cell?.firstElementChild;
+    const name = line?.querySelector('span[title]')?.getAttribute('title')?.trim();
+    return name ? { name, line } : null;
+  }
+
   function mountLeaderboard() {
     for (const dialog of document.querySelectorAll('[role="dialog"][aria-modal="true"]')) {
-      if (!dialog.querySelector('aside[aria-label="地图列表"]')) continue;
-      const rows = new Set([...dialog.querySelectorAll('button[aria-label$="· 查看配装与天赋 →"]')]
-        .map(button => button.closest('div.grid')).filter(Boolean));
+      if (!dialog.querySelector('aside[aria-label="地图列表"],aside[aria-label="榜单列表"]')) continue;
+      const rows = [...dialog.querySelectorAll('div.grid')].filter(row =>
+        row.firstElementChild?.tagName === 'SPAN' && /^\d+$/.test(row.firstElementChild.textContent.trim()));
       for (const row of rows) {
-        const nameLine = row.children[1]?.firstElementChild;
-        const currentName = () => nameLine?.querySelector('span[title]')?.getAttribute('title')?.trim();
-        const name = currentName();
-        if (!name) continue;
-        let button = nameLine.querySelector('[data-rr-live-profile]');
+        const target = leaderboardTarget(row);
+        for (const old of row.querySelectorAll('[data-rr-live-profile]')) {
+          if (!target || old.parentElement !== target.line) old.remove();
+        }
+        if (!target) continue;
+        const { name, line } = target;
+        let button = line.querySelector('[data-rr-live-profile]');
         if (!button) {
           button = document.createElement('button');
           button.type = 'button';
@@ -89,10 +112,10 @@
           button.textContent = '查看实时信息';
           button.addEventListener('click', event => {
             event.stopPropagation();
-            const liveName = currentName();
+            const liveName = leaderboardTarget(row)?.name;
             if (liveName) location.assign(`${location.origin}/view-character/${encodeURIComponent(liveName)}`);
           });
-          nameLine.append(button);
+          line.append(button);
         }
         const label = `${name} · 查看实时信息`;
         const title = `查看 ${name} 的实时资料`;
@@ -107,6 +130,6 @@
     if (scheduled) return;
     scheduled = true;
     setTimeout(() => { scheduled = false; mount(); }, 50);
-  }).observe(document.body, { childList: true, characterData: true, attributes: true, attributeFilter: ['title'], subtree: true });
+  }).observe(document.body, { childList: true, characterData: true, attributes: true, attributeFilter: ['title', 'aria-pressed'], subtree: true });
   mount();
 })();

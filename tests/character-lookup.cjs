@@ -96,6 +96,52 @@ const assert = require('node:assert/strict');
     assert.equal(await reused.getAttribute('title'), '查看 星界琉璃 的实时资料');
     await reused.click();
     await page.waitForURL('http://rollrune.test/view-character/%E6%98%9F%E7%95%8C%E7%90%89%E7%92%83');
+
+    // The updated sidebar and player boards show account names first. Only
+    // character-bearing rows may link to profiles, even when values are hidden.
+    await page.goto('http://rollrune.test/town');
+    await page.evaluate(() => {
+      const dialog = document.createElement('div');
+      dialog.setAttribute('role', 'dialog');
+      dialog.setAttribute('aria-modal', 'true');
+      dialog.innerHTML = '<aside aria-label="榜单列表"><button title="战力榜" aria-pressed="true">战力榜</button><button title="财富榜" aria-pressed="false">财富榜</button><button title="黑手榜" aria-pressed="false">黑手榜</button><button title="混沌领域" aria-pressed="false">混沌领域</button></aside><div class="grid" id="player-row"><span>1</span><div><div><span title="xiaohaven">xiaohaven</span></div><div class="text-zinc-500"><span class="truncate">Haven</span><span class="text-amber-400/90" title="称号">✦ 称号</span></div></div><div>***</div></div><div class="grid"><span>2</span><div><div><span title="账号">账号</span></div><div><span class="text-amber-400/90" title="称号">✦ 称号</span></div></div><div>***</div></div>';
+      document.body.append(dialog);
+    });
+    await page.addScriptTag({ content: fs.readFileSync('src/character-lookup.js', 'utf8') });
+    const player = page.locator('#player-row [data-rr-live-profile]');
+    assert.equal(await page.locator('[data-rr-live-profile]').count(), 1);
+    assert.equal(await player.getAttribute('aria-label'), 'Haven · 查看实时信息');
+    await page.evaluate(() => {
+      for (const button of document.querySelectorAll('aside button')) button.setAttribute('aria-pressed', String(button.title === '财富榜'));
+    });
+    await page.waitForFunction(() => !document.querySelector('[data-rr-live-profile]'));
+    await page.evaluate(() => {
+      for (const button of document.querySelectorAll('aside button')) button.setAttribute('aria-pressed', String(button.title === '黑手榜'));
+      document.querySelector('#player-row > div > div:nth-child(2) > span').textContent = 'Ethlyn';
+    });
+    await player.waitFor();
+    await page.waitForFunction(() => document.querySelector('#player-row [data-rr-live-profile]')?.getAttribute('aria-label') === 'Ethlyn · 查看实时信息');
+    assert.equal(await page.locator('[data-rr-live-profile]').count(), 1);
+    // Reuse the same row for a map record, then back for a player record.
+    await page.evaluate(() => {
+      for (const button of document.querySelectorAll('aside button')) button.setAttribute('aria-pressed', String(button.title === '混沌领域'));
+      const row = document.querySelector('#player-row');
+      row.querySelector('span[title]').title = '地图角色';
+      row.querySelector('span[title]').textContent = '地图角色';
+      const snapshot = document.createElement('button');
+      snapshot.setAttribute('aria-label', '地图角色 · 查看配装与天赋 →');
+      row.append(snapshot);
+    });
+    await page.waitForFunction(() => document.querySelector('#player-row [data-rr-live-profile]')?.getAttribute('aria-label') === '地图角色 · 查看实时信息');
+    assert.equal(await page.locator('[data-rr-live-profile]').count(), 1);
+    await page.evaluate(() => {
+      for (const button of document.querySelectorAll('aside button')) button.setAttribute('aria-pressed', String(button.title === '战力榜'));
+      document.querySelector('#player-row > div > div:nth-child(2) > span').firstChild.data = '新角色';
+    });
+    await page.waitForFunction(() => document.querySelector('#player-row [data-rr-live-profile]')?.getAttribute('aria-label') === '新角色 · 查看实时信息');
+    assert.equal(await page.locator('[data-rr-live-profile]').count(), 1);
+    await player.click();
+    await page.waitForURL('http://rollrune.test/view-character/%E6%96%B0%E8%A7%92%E8%89%B2');
   } finally {
     await browser.close();
   }
